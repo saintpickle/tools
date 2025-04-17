@@ -7,6 +7,7 @@ A collection of utility scripts for macOS to help with various development and s
 This repository contains various command-line tools and utility scripts designed to enhance productivity on macOS. Currently, it includes:
 
 - **iconsetgen**: A utility script for generating different sized icons and .icns files for macOS applications (only works on MacOS)
+- **img2svg**: A utility script for converting raster images (PNG, JPEG, BMP, TIFF) to SVG vector format
 
 ## Installation Instructions
 
@@ -89,3 +90,57 @@ The script:
 5. Cleans up the temporary directory
 
 For best results, use a high-resolution square PNG image (at least 1024x1024) as your source image.
+
+### img2svg
+
+`img2svg` is a utility script that converts raster images to SVG vector format. This tool supports multiple image formats and can process individual files or entire directories.
+
+#### Usage:
+
+1. For a single file:
+```bash
+img2svg image.png                 # Converts to image.svg
+img2svg photo.jpg custom.svg      # Converts to custom.svg
+```
+
+2. For a directory of images:
+```bash
+img2svg images/                   # Converts all supported images in the directory
+img2svg images/ output_dir/       # Converts all images to the output directory
+```
+
+3. Get help:
+```bash
+img2svg --help
+```
+
+#### Supported Formats:
+
+- PNG
+- JPEG/JPG
+- BMP
+- TIFF/TIF
+
+#### Requirements:
+
+- macOS with Homebrew
+- The script will automatically offer to install required dependencies:
+  - ImageMagick (for image processing)
+  - Potrace (for bitmap tracing)
+
+#### How it Works:
+
+The script:
+1. Checks for required dependencies and offers to install them
+2. Processes the input image with ImageMagick to prepare it for tracing
+3. Uses Potrace to convert the bitmap to vector SVG format
+4. Outputs the resulting SVG file(s)
+
+The conversion process uses bitmap tracing to create vector outlines from the raster images. For best results, use images with:
+
+- High contrast
+- Clean, distinct edges
+- Limited noise or grain
+- Simple designs (complex photos may produce large SVG files with many paths)
+
+This tool is particularly useful for converting logos, icons, and simple illustrations to scalable vector format.

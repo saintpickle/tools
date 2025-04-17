@@ -1,0 +1,273 @@
+#!/bin/bash
+#
+# img2svg - Convert image files to SVG format
+#
+# This script converts raster images (PNG, JPEG, BMP, TIFF) to SVG format 
+# using potrace and ImageMagick. It handles both single files and batch conversion
+# of directories.
+#
+# Note: Compatible with both older (using 'convert') and newer (using 'magick') 
+# versions of ImageMagick.
+
+set -e
+
+# ANSI color codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Supported image formats
+SUPPORTED_FORMATS=("png" "jpg" "jpeg" "bmp" "tiff" "tif")
+SUPPORTED_FORMATS_UPPER=("PNG" "JPG" "JPEG" "BMP" "TIFF" "TIF")
+
+# Function to print usage instructions
+print_usage() {
+    echo -e "${BLUE}Usage:${NC}"
+    echo "  img2svg <input> [output]"
+    echo ""
+    echo -e "${BLUE}Arguments:${NC}"
+    echo "  input   - Image file or directory containing image files"
+    echo "  output  - (Optional) Output SVG file or directory"
+    echo ""
+    echo -e "${BLUE}Supported Formats:${NC}"
+    echo "  PNG, JPEG/JPG, BMP, TIFF/TIF"
+    echo ""
+    echo -e "${BLUE}Examples:${NC}"
+    echo "  img2svg image.png                  # Converts to image.svg"
+    echo "  img2svg photo.jpg custom.svg       # Converts to custom.svg"
+    echo "  img2svg directory/                 # Converts all supported images in directory"
+    echo "  img2svg directory/ output_dir/     # Converts all supported images to output_dir"
+    echo ""
+}
+
+# Check if Homebrew is installed
+check_homebrew() {
+    if ! command -v brew &> /dev/null; then
+        echo -e "${RED}Error: Homebrew is not installed.${NC}"
+        echo -e "Please install Homebrew from https://brew.sh/"
+        echo -e "  /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+        exit 1
+    fi
+}
+
+# Check dependencies and install if missing
+check_dependencies() {
+    local missing_deps=()
+    
+    # Check for potrace
+    if ! command -v potrace &> /dev/null; then
+        missing_deps+=("potrace")
+    fi
+    
+    # Check for ImageMagick (prefer 'magick' but fall back to 'convert')
+    if ! command -v magick &> /dev/null && ! command -v convert &> /dev/null; then
+        missing_deps+=("imagemagick")
+    fi
+    
+    # If there are missing dependencies, try to install them
+    if [ ${#missing_deps[@]} -gt 0 ]; then
+        echo -e "${YELLOW}Required dependencies are missing: ${missing_deps[*]}${NC}"
+        echo -e "Would you like to install them using Homebrew? (y/n)"
+        read -r answer
+        
+        if [[ "$answer" =~ ^[Yy]$ ]]; then
+            check_homebrew
+            echo -e "${BLUE}Installing dependencies...${NC}"
+            
+            for dep in "${missing_deps[@]}"; do
+                echo -e "Installing $dep..."
+                brew install "$dep"
+            done
+            
+            echo -e "${GREEN}Dependencies installed successfully.${NC}"
+        else
+            echo -e "${RED}Cannot continue without required dependencies.${NC}"
+            exit 1
+        fi
+    fi
+}
+
+# Check if file is a supported image format
+is_supported_format() {
+    local filename="$1"
+    local ext="${filename##*.}"
+    
+    for format in "${SUPPORTED_FORMATS[@]}" "${SUPPORTED_FORMATS_UPPER[@]}"; do
+        if [ "$ext" == "$format" ]; then
+            return 0
+        fi
+    done
+    
+    return 1
+}
+
+# Determine which ImageMagick command to use
+get_imagemagick_command() {
+    if command -v magick &> /dev/null; then
+        echo "magick"
+    elif command -v convert &> /dev/null; then
+        echo "convert"
+    else
+        echo -e "${RED}Error: ImageMagick is not installed.${NC}"
+        exit 1
+    fi
+}
+
+# Convert an image file to SVG
+convert_image_to_svg() {
+    local input_file="$1"
+    local output_file="$2"
+    local temp_dir
+    temp_dir=$(mktemp -d)
+    
+    # Create temporary files
+    local temp_bmp="$temp_dir/temp.bmp"
+    
+    echo -e "${BLUE}Converting${NC} $input_file ${BLUE}to${NC} $output_file"
+    
+    # Get the appropriate ImageMagick command
+    local imgcmd
+    imgcmd=$(get_imagemagick_command)
+    
+    # Convert image to BMP (potrace needs BMP or PNM format)
+    if [ "$imgcmd" = "magick" ]; then
+        # Use the newer 'magick' command
+        magick "$input_file" -flatten -normalize -threshold 50% "$temp_bmp"
+    else
+        # Fall back to the deprecated 'convert' command
+        convert "$input_file" -flatten -normalize -threshold 50% "$temp_bmp"
+    fi
+    
+    # Use potrace to convert BMP to SVG
+    potrace --svg --output "$output_file" "$temp_bmp"
+    
+    # Clean up temporary files
+    rm -rf "$temp_dir"
+    
+    echo -e "${GREEN}Successfully created:${NC} $output_file"
+}
+
+# Get file extension
+get_extension() {
+    local filename="$1"
+    echo "${filename##*.}"
+}
+
+# Get file basename without extension
+get_basename() {
+    local filename="$1"
+    local basename
+    basename=$(basename "$filename")
+    echo "${basename%.*}"
+}
+
+# Process a directory of image files
+process_directory() {
+    local input_dir="$1"
+    local output_dir="$2"
+    
+    # Create output directory if it doesn't exist
+    mkdir -p "$output_dir"
+    
+    # Create the find pattern for supported formats
+    local find_pattern=""
+    for format in "${SUPPORTED_FORMATS[@]}" "${SUPPORTED_FORMATS_UPPER[@]}"; do
+        find_pattern="$find_pattern -o -name \"*.$format\""
+    done
+    find_pattern="${find_pattern:4}" # Remove the first ' -o '
+    
+    # Count total files
+    local total
+    total=$(find "$input_dir" -maxdepth 1 \( $find_pattern \) | wc -l)
+    total=$((total))
+    
+    echo -e "${BLUE}Found $total supported image files in $input_dir${NC}"
+    
+    if [ $total -eq 0 ]; then
+        echo -e "${YELLOW}No supported image files found in $input_dir${NC}"
+        echo -e "Supported formats: ${SUPPORTED_FORMATS[*]}, ${SUPPORTED_FORMATS_UPPER[*]}"
+        exit 0
+    fi
+    
+    # Process each image file in the directory
+    local count=0
+    find "$input_dir" -maxdepth 1 \( $find_pattern \) | while read -r file; do
+        local basename
+        basename=$(get_basename "$file")
+        local output_file="$output_dir/$basename.svg"
+        
+        count=$((count + 1))
+        echo -e "${BLUE}[$count/$total]${NC} Processing $(basename "$file")..."
+        
+        convert_image_to_svg "$file" "$output_file"
+    done
+    
+    echo -e "${GREEN}Conversion complete!${NC} $count files converted."
+}
+
+# Main function
+main() {
+    # Check for arguments
+    if [ $# -lt 1 ]; then
+        print_usage
+        exit 1
+    fi
+    
+    # Check for help flag
+    if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+        print_usage
+        exit 0
+    fi
+    
+    # Check dependencies
+    check_dependencies
+    
+    # Detect which ImageMagick command is available
+    local imgcmd
+    imgcmd=$(get_imagemagick_command)
+    if [ "$imgcmd" = "convert" ]; then
+        echo -e "${YELLOW}Warning: Using deprecated 'convert' command from ImageMagick.${NC}"
+        echo -e "${YELLOW}For future compatibility, consider updating to ImageMagick 7+ which uses 'magick'.${NC}"
+    fi
+    
+    input="$1"
+    
+    # Handle directory input
+    if [ -d "$input" ]; then
+        if [ $# -gt 1 ] && [ -n "$2" ]; then
+            output_dir="$2"
+        else
+            output_dir="$input"
+        fi
+        
+        process_directory "$input" "$output_dir"
+    # Handle file input
+    elif [ -f "$input" ]; then
+        # Check if file is a supported image
+        if ! is_supported_format "$input"; then
+            echo -e "${RED}Error: Unsupported file format.${NC}"
+            echo -e "Supported formats: ${SUPPORTED_FORMATS[*]}, ${SUPPORTED_FORMATS_UPPER[*]}"
+            exit 1
+        fi
+        
+        if [ $# -gt 1 ] && [ -n "$2" ]; then
+            output="$2"
+        else
+            local basename
+            basename=$(get_basename "$input")
+            output="$basename.svg"
+        fi
+        
+        convert_image_to_svg "$input" "$output"
+    else
+        echo -e "${RED}Error: Input '$input' is not a file or directory.${NC}"
+        print_usage
+        exit 1
+    fi
+}
+
+# Run the main function
+main "$@"
+
