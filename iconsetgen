@@ -30,8 +30,17 @@ sips -z 256 256 icon.png --out icons.iconset/icon_128x128@2x.png
 sips -z 512 512 icon.png --out icons.iconset/icon_256x256@2x.png
 sips -z 1024 1024 icon.png --out icons.iconset/icon_512x512@2x.png
 
+# Generate 48x48 icon for .ico file
+sips -z 48 48 icon.png --out icons.iconset/icon_48x48.png
+
 # Generate icns file
 iconutil -c icns icons.iconset -o icon.icns
+
+# Generate ico file with multiple resolutions
+echo "Generating .ico file..."
+magick icons.iconset/icon_16x16.png icons.iconset/icon_32x32.png icons.iconset/icon_48x48.png \
+        icons.iconset/icon_64x64.png icons.iconset/icon_128x128.png icons.iconset/icon_256x256.png \
+        -colors 256 icon.ico
 
 # Copy generated icons with icns file
 cp icons.iconset/* ./

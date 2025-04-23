@@ -68,6 +68,7 @@ The script generates the following files:
 |------------------------|-------------|--------------------------------|
 | icon_16x16.png         | 16x16       | Standard size                  |
 | icon_32x32.png         | 32x32       | Standard size                  |
+| icon_48x48.png         | 48x48       | Standard size                  |
 | icon_64x64.png         | 64x64       | Standard size                  |
 | icon_128x128.png       | 128x128     | Standard size                  |
 | icon_256x256.png       | 256x256     | Standard size                  |
@@ -79,6 +80,7 @@ The script generates the following files:
 | icon_256x256@2x.png    | 512x512     | Retina display (@2x)           |
 | icon_512x512@2x.png    | 1024x1024   | Retina display (@2x)           |
 | icon.icns              | -           | macOS icon resource file       |
+| icon.ico               | -           | Windows icon resource file     |
 
 #### How it Works:
 
