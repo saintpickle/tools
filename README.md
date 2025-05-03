@@ -138,6 +138,76 @@ The script:
 3. Uses Potrace to convert the bitmap to vector SVG format
 4. Outputs the resulting SVG file(s)
 
+### gh-tool
+
+`gh-tool` is a GitHub utility tool that simplifies common GitHub operations, particularly focused on making pull request workflows more intuitive and efficient.
+
+#### Usage:
+
+1. Checkout a pull request:
+```bash
+gh-tool pr checkout 123       # Fetches and checks out PR #123 to a local branch
+```
+
+2. View pull request information:
+```bash
+gh-tool pr info 123           # Display metadata about PR #123
+```
+
+3. Check status of pull requests:
+```bash
+gh-tool pr status             # Show status of open PRs for the repository
+```
+
+4. Clean up pull request branches:
+```bash
+gh-tool pr cleanup 123        # Cleanup the branch for PR #123
+gh-tool pr cleanup            # Cleanup all merged PR branches
+```
+
+5. Manage configuration:
+```bash
+gh-tool config set default_remote upstream  # Change the default Git remote
+gh-tool config get github_token             # View your GitHub token
+```
+
+6. Get help:
+```bash
+gh-tool --help                # Show general help
+gh-tool pr --help             # Show help for PR commands
+```
+
+#### Features:
+
+- **Simplified PR Checkout**: Replaces complex commands like `git fetch origin pull/ID/head:BRANCHNAME` with a more intuitive syntax
+- **Configuration Management**: Persistent configuration for GitHub operations
+- **Colorized Output**: Clear, color-coded feedback for better readability
+- **Repository Validation**: Automatic checks to ensure you're in a valid Git repository
+- **Extensible Design**: Easy to add new GitHub-related operations
+
+#### Requirements:
+
+- Python 3.6 or higher
+- Git command-line tools
+- A GitHub account and repository access
+
+#### Configuration:
+
+The tool stores configuration in `~/.gh-tool/config.json` with these default settings:
+
+| Setting         | Default | Description                                  |
+|-----------------|---------|----------------------------------------------|
+| default_remote  | origin  | The Git remote to use for operations         |
+| url_type        | https   | URL type (https or ssh) for GitHub URLs      |
+| github_token    |         | Optional GitHub token for API operations     |
+
+You can customize these settings using the config commands:
+
+```bash
+gh-tool config set default_remote upstream
+gh-tool config set url_type ssh
+```
+
 The conversion process uses bitmap tracing to create vector outlines from the raster images. For best results, use images with:
 
 - High contrast
