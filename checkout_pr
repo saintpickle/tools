@@ -1,0 +1,66 @@
+#!/bin/bash
+
+# git-fetch-pr - A script to fetch GitHub pull requests and checkout the branch
+# Usage: git-fetch-pr PR_ID BRANCH_NAME
+
+# Display help message
+show_help() {
+    echo "Usage: git-fetch-pr PR_ID BRANCH_NAME"
+    echo ""
+    echo "Description:"
+    echo "  Fetches a GitHub pull request, creates a local branch, and checks it out"
+    echo ""
+    echo "Arguments:"
+    echo "  PR_ID        The ID number of the pull request"
+    echo "  BRANCH_NAME  The name of the local branch to create"
+    echo ""
+    echo "Example:"
+    echo "  git-fetch-pr 1234 fix-bug"
+    echo "  (This will fetch PR #1234 to a local branch named 'fix-bug' and check it out)"
+}
+
+# Check if help is requested
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    show_help
+    exit 0
+fi
+
+# Validate input parameters
+if [ $# -ne 2 ]; then
+    echo "Error: Exactly 2 arguments are required"
+    show_help
+    exit 1
+fi
+
+PR_ID="$1"
+BRANCH_NAME="$2"
+
+# Validate PR_ID is a number
+if ! [[ "$PR_ID" =~ ^[0-9]+$ ]]; then
+    echo "Error: PR_ID must be a number"
+    exit 1
+fi
+
+# Execute the git fetch command
+echo "Fetching PR #$PR_ID to branch '$BRANCH_NAME'..."
+git fetch origin "pull/$PR_ID/head:$BRANCH_NAME"
+
+# Check if fetch was successful
+if [ $? -eq 0 ]; then
+    echo "Successfully fetched PR #$PR_ID to branch '$BRANCH_NAME'"
+    
+    # Checkout the branch
+    echo "Checking out branch '$BRANCH_NAME'..."
+    git checkout "$BRANCH_NAME"
+    
+    if [ $? -eq 0 ]; then
+        echo "You are now on branch '$BRANCH_NAME'"
+    else
+        echo "Failed to checkout branch '$BRANCH_NAME'"
+        exit 1
+    fi
+else
+    echo "Failed to fetch PR #$PR_ID"
+    exit 1
+fi
+
